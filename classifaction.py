@@ -5,6 +5,8 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn import metrics
 from sklearn.ensemble import GradientBoostingClassifier
 import sklearn.svm as svm
+
+from sklearn.svm import SVC
 import lda
 import numpy as np
 
@@ -12,6 +14,7 @@ categories = [
     'alt.atheism', 'soc.religion.christian',
     'comp.graphics', 'sci.med'
 ]
+
 
 twenty_train = fetch_20newsgroups(subset='train', categories=None)
 twenty_test = fetch_20newsgroups(subset='test', categories=None)
@@ -28,6 +31,7 @@ print(X_train_counts.shape)
 # X_train_tf = tf_transformer.fit_transform(X_train_counts)
 # print(X_train_tf.shape)
 
+
 # clf = MultinomialNB().fit(X_train_tf, twenty_train.target)
 # clf = GradientBoostingClassifier().fit(X_train_tf, twenty_train.target)
 # clf = svm.SVC(decision_function_shape='ovo', kernel='linear').fit(X_train_tf, twenty_train.target)
@@ -38,8 +42,8 @@ print(X_train_counts.shape)
 
 model = lda.LDA(n_topics=200, n_iter=1500)
 model.fit(X_train_counts)
+
 # topic_word = model.topic_word_
-#
 # n = 20
 # for i, topic_dist in enumerate(topic_word):
 #     topic_words = np.array(word)[np.argsort(topic_dist)][:-(n+1):-1]
