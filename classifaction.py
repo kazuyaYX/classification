@@ -39,11 +39,12 @@ tf_transformer = TfidfTransformer().fit(X_train_counts)
 # twenty_unlabeled_data = twenty_train.data[labeled_length:]
 # twenty_train_labeled = twenty_train.target[:labeled_length]
 
-balance = [100 for i in range(0, 100)]
+balance = [10 for i in range(0, 20)]
 i = 0
 twenty_labeled_data = []
 twenty_unlabeled_data = []
 twenty_train_labeled = []
+twenty_train_labeled_un = []
 for data in twenty_train.data:
     if balance[twenty_train.target[i]] != 0:
         twenty_labeled_data.append(data)
@@ -51,6 +52,7 @@ for data in twenty_train.data:
         balance[twenty_train.target[i]] -= 1
     else:
         twenty_unlabeled_data.append(data)
+        twenty_train_labeled_un.append(twenty_train.target[i])
     i += 1
 
 count = [0 for i in range(0, 20)]
@@ -62,41 +64,61 @@ print(len(twenty_unlabeled_data))
 #self-training
 X_train_labeled_counts = count_vect.transform(twenty_labeled_data)
 X_train_tf = tf_transformer.transform(X_train_labeled_counts)
-for i in range(0, 200):
-    clf = svm.SVC(decision_function_shape='ovo', kernel='linear', probability=True).fit(X_train_tf, twenty_train_labeled)
+for i in range(0, 10):
+    clf = svm.SVC(kernel='linear', probability=True).fit(X_train_tf, twenty_train_labeled)
     predicted = clf.predict(tf_transformer.transform(count_vect.transform(twenty_unlabeled_data)))
     predicted_proba = clf.predict_proba(tf_transformer.transform(count_vect.transform(twenty_unlabeled_data)))
 
     score_dic = {}
     for j in range(0, len(predicted_proba)):
         sorted_proba = sorted(predicted_proba[j], reverse=True)
+        # score_dic[j] = sorted_proba[0] - sorted_proba[1]
         score_dic[j] = sorted_proba[0] - sorted_proba[1]
 
-    sorted(score_dic.items(), key=lambda d: d[1], reverse=True)
+    score_dic = sorted(score_dic.items(), key=lambda d: d[1], reverse=True)
+    # print(score_dic)
     j = 0
-    balance = [1 for k in range(0, 20)]
-    for key in score_dic.keys():
-        if j == 20:
+    balance = [5 for k in range(0, 20)]
+    keys = []
+    for key, score in score_dic:
+        print(key, score, predicted[key])
+        if j == 100:
             break
         if balance[predicted[key]] == 0:
             continue
         balance[predicted[key]] -= 1
+        if score < 0.2:
+            j += 1
+            continue
+        # print(key, score, predicted[key])
+        # print(score_dic.get(key))
         # print(twenty_unlabeled_data[key])
         # print(score_dic[key])
         # print(predicted_proba[key])
         # print(predicted[key])
         twenty_labeled_data.append(twenty_unlabeled_data[key])
         twenty_train_labeled = np.append(twenty_train_labeled, predicted[key])
+        print(twenty_train_labeled_un[key], predicted[key])
         # twenty_train_labeled.append(predicted[key])
-        del twenty_unlabeled_data[key]
+        keys.append(key)
+        # del twenty_unlabeled_data[key]
+        # del twenty_train_labeled_un[key]
+        # print(len(twenty_labeled_data))
+        # print(len(twenty_train_labeled))
+        # print(len(twenty_unlabeled_data))
         j += 1
+    keys = sorted(keys, reverse=True)
+    for key in keys:
+        # print(key, len(twenty_unlabeled_data))
+        del twenty_unlabeled_data[key]
+        del twenty_train_labeled_un[key]
 
     X_train_labeled_counts = count_vect.transform(twenty_labeled_data)
     X_train_tf = tf_transformer.transform(X_train_labeled_counts)
     print(X_train_tf.shape)
     print(len(twenty_train_labeled))
 
-    clf = svm.SVC(decision_function_shape='ovo', kernel='linear', probability=True).fit(X_train_tf, twenty_train_labeled)
+    clf = svm.SVC(kernel='linear', probability=True).fit(X_train_tf, twenty_train_labeled)
     predicted = clf.predict(tf_transformer.transform(count_vect.transform(twenty_test.data)))
     predicted_proba = clf.predict_proba(tf_transformer.transform(count_vect.transform(twenty_test.data)))
     print(metrics.classification_report(twenty_test.target, predicted, target_names=twenty_test.target_names))
