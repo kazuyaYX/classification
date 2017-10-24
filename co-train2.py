@@ -83,15 +83,18 @@ def co_training(data, data2, n_iter, n_move, threshold):
             score_dic[j] = sorted_proba[0] - sorted_proba[1]
 
         score_dic = sorted(score_dic.items(), key=lambda d: d[1], reverse=True)
+        # print(score_dic)
         j = 0
         balance = [n_move for k in range(0, 20)]
         # keys = []
         # keys_predicted = []
-        keys_dic_data2 = {}
+        content_dic_data2 = {}
         for key, score in score_dic:
             # print(predicted[key], score)
             if j == n_move*20:
                 break
+            if data.train_unlabeled[key] not in data2.train_unlabeled:
+                continue
             if balance[predicted[key]] == 0:
                 continue
             balance[predicted[key]] -= 1
@@ -107,9 +110,9 @@ def co_training(data, data2, n_iter, n_move, threshold):
             # data.train_labeled_target.append(predicted[key])
             # keys.append(key)
             # keys_predicted.append(predicted[key])
-            keys_dic_data2[key] = predicted[key]
+            content_dic_data2[data.train_unlabeled[key]] = predicted[key]
             j += 1
-        # print(keys_dic)
+        # print(content_dic_data2)
         # print(len(keys_dic))
 
         # keys = sorted(keys, reverse=True)
@@ -130,7 +133,7 @@ def co_training(data, data2, n_iter, n_move, threshold):
             score_dic[j] = sorted_proba[0] - sorted_proba[1]
 
         score_dic = sorted(score_dic.items(), key=lambda d: d[1], reverse=True)
-        keys_dic_data = {}
+        content_dic_data = {}
         j = 0
         balance = [n_move for k in range(0, 20)]
         for key, score in score_dic:
@@ -139,6 +142,8 @@ def co_training(data, data2, n_iter, n_move, threshold):
             #     continue
             if j == n_move * 20:
                 break
+            if data2.train_unlabeled[key] not in data.train_unlabeled:
+                continue
             if balance[predicted[key]] == 0:
                 continue
             balance[predicted[key]] -= 1
@@ -148,32 +153,34 @@ def co_training(data, data2, n_iter, n_move, threshold):
                 continue
             # keys.append(key)
             # keys_predicted.append(predicted[key])
-            keys_dic_data[key] = predicted[key]
+            # keys_dic_data[key] = predicted[key]
+            content_dic_data[data2.train_unlabeled[key]] = predicted[key]
             j += 1
 
         # change data part
         # keys = sorted(keys, reverse=True)
-        keys_dic_data = sorted(keys_dic_data.items(), key=lambda d: d[0], reverse=True)
-        keys_dic_data2 = sorted(keys_dic_data2.items(), key=lambda d: d[0], reverse=True)
+        # keys_dic_data = sorted(keys_dic_data.items(), key=lambda d: d[0], reverse=True)
+        # keys_dic_data2 = sorted(keys_dic_data2.items(), key=lambda d: d[0], reverse=True)
         # print(len(keys_dic))
-        for key, predict in keys_dic_data2:
+        for (content, predict) in content_dic_data2.items():
             # print(key)
             # print(key, len(twenty_unlabeled_data))
             # print(data.train_unlabeled_target[key])
+            key = data2.train_unlabeled.index(content)
             data2.train_labeled.append(data2.train_unlabeled[key])
             data2.train_labeled_target.append(predict)
             del data2.train_unlabeled[key]
             del data2.train_unlabeled_target[key]
 
-        for key, predict in keys_dic_data:
+        for (content, predict) in content_dic_data.items():
             # print(key)
             # print(key, len(twenty_unlabeled_data))
             # print(data.train_unlabeled_target[key])
+            key = data.train_unlabeled.index(content)
             data.train_labeled.append(data.train_unlabeled[key])
             data.train_labeled_target.append(predict)
             del data.train_unlabeled[key]
             del data.train_unlabeled_target[key]
-
 
 
         ##test-part
@@ -210,8 +217,35 @@ def co_training(data, data2, n_iter, n_move, threshold):
             print("co-train:")
             print(metrics.classification_report(data.test_target, predicted, target_names=data.target_names))
 
+    clf1 = svm.SVC(kernel='linear', probability=True).fit(X_train_lda, data.train_labeled_target)
+    predicted1 = clf1.predict(lda_model.transform(count_vect.transform(data.test)))
+    predicted_proba1 = clf1.predict_proba(lda_model.transform(count_vect.transform(data.test)))
+    print("lda:")
+    print(metrics.classification_report(data.test_target, predicted1, target_names=data.target_names))
+
+    clf2 = svm.SVC(kernel='linear', probability=True).fit(X_train_tfidf, data2.train_labeled_target)
+    predicted2 = clf2.predict(tfidf_transformer.transform(count_vect.transform(data2.test)))
+    predicted_proba2 = clf2.predict_proba(tfidf_transformer.transform(count_vect.transform(data2.test)))
+    print("tfidf:")
+    print(metrics.classification_report(data2.test_target, predicted2, target_names=data2.target_names))
+
+    # print(predicted_proba1[5])
+    # print(predicted_proba2[5])
+
+    predicted = []
+    for j in range(0, len(predicted_proba1)):
+        predicted_proba = []
+        for p in range(0, len(predicted_proba1[j])):
+            predicted_proba.append(predicted_proba1[j][p] + predicted_proba2[j][p])
+        # if j == 5:
+        #     print(predicted_proba)
+        predicted.append(predicted_proba.index(max(predicted_proba)))
+    # print(predicted)
+    print("co-train:")
+    print(metrics.classification_report(data.test_target, predicted, target_names=data.target_names))
+
 
 if __name__ == '__main__':
     data = get_train_data(10)
     data2 = get_train_data(10)
-    co_training(data, data2, 101, 1, 0.01)
+    co_training(data, data2, 201, 1, 0.05)
