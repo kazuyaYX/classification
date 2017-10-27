@@ -151,7 +151,7 @@ def co_training(data, n_iter, n_move, threshold):
         keys_dic = sorted(keys_dic.items(), key=lambda d: d[0], reverse=True)
         # print(len(keys_dic))
         for key, predict in keys_dic:
-            print(key)
+            # print(key)
             # print(key, len(twenty_unlabeled_data))
             # print(data.train_unlabeled_target[key])
             data.train_labeled.append(data.train_unlabeled[key])
@@ -168,11 +168,13 @@ def co_training(data, n_iter, n_move, threshold):
             clf1 = svm.SVC(kernel='linear', probability=True).fit(X_train_lda, data.train_labeled_target)
             predicted1 = clf1.predict(lda_model.transform(count_vect.transform(data.test)))
             predicted_proba1 = clf1.predict_proba(lda_model.transform(count_vect.transform(data.test)))
+            print("lda:")
             print(metrics.classification_report(data.test_target, predicted1, target_names=data.target_names))
 
             clf2 = svm.SVC(kernel='linear', probability=True).fit(X_train_tfidf, data.train_labeled_target)
             predicted2 = clf2.predict(tfidf_transformer.transform(count_vect.transform(data.test)))
             predicted_proba2 = clf2.predict_proba(tfidf_transformer.transform(count_vect.transform(data.test)))
+            print("tfidf:")
             print(metrics.classification_report(data.test_target, predicted2, target_names=data.target_names))
 
             # print(predicted_proba1[5])
@@ -186,11 +188,12 @@ def co_training(data, n_iter, n_move, threshold):
                 if j == 5:
                     print(predicted_proba)
                 predicted.append(predicted_proba.index(max(predicted_proba)))
-            print(predicted)
+            # print(predicted)
+            print("co-train:")
             print(metrics.classification_report(data.test_target, predicted, target_names=data.target_names))
 
 
 if __name__ == '__main__':
     data = get_train_data(10)
     # print(data.test_target[5])
-    co_training(data, 101, 1, 0.05)
+    co_training(data, 201, 1, 0.05)
