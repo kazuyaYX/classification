@@ -194,6 +194,7 @@ def co_training(data, n_iter, n_move, threshold):
 
 
 if __name__ == '__main__':
-    data = get_train_data(10)
+    print(15, 201, 1, 0.05)
+    data = get_train_data(15)
     # print(data.test_target[5])
-    co_training(data, 151, 1, 0.05)
+    co_training(data, 201, 1, 0.05)
