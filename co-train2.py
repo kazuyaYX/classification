@@ -246,6 +246,7 @@ def co_training(data, data2, n_iter, n_move, threshold):
 
 
 if __name__ == '__main__':
-    data = get_train_data(10)
-    data2 = get_train_data(10)
-    co_training(data, data2, 201, 1, 0.05)
+    print(50, 201, 1, 0.01)
+    data = get_train_data(50)
+    data2 = get_train_data(50)
+    co_training(data, data2, 201, 1, 0.01)
